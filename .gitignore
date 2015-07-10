@@ -1,1 +1,8 @@
-_site/
+# built files
+build
+
+# node
+node_modules
+
+# bower
+bower_components

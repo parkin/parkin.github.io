@@ -1,0 +1,16 @@
+{
+  "name": "parkin.github.io",
+  "version": "0.0.1",
+  "description": "parkin.github.io",
+  "scripts": {
+    "postinstall": "npm run bower-install",
+    "bower-install": "./node_modules/.bin/bower install",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "private": true,
+  "devDependencies": {
+    "bower": "^1.4.1"
+  }
+}

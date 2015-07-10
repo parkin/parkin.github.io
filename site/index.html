@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <script type="text/javascript" src="bower_components/snap.svg/dist/snap.svg-min.js"></script>
+  <link rel="stylesheet" href="stylesheets/main.css" type="text/css">
+</head>
+
+<body>
+  <svg id="svg" style="position: fixed; top: 0; left:0; width:100%; height:100%;" preserveAspectRatio="xMidYMid meet"></svg>
+
+  <script type="text/javascript">
+    var sqrt3 = Math.sqrt(3);
+    (function() {
+      var s = Snap("#svg");
+
+      var moRadius = 1;
+      var sRadius = 1.8;
+
+      // width and height in percentages
+      var width = 100;
+      var height = 100;
+
+      // number of unit cells in each direction
+      var unitCellsX = 8;
+      var unitCellsY = 6;
+
+      // lattice constants in each direction
+      // need different lattice constants because screen width and height will
+      // be different
+      var a = width/(unitCellsX);
+      var ay = height * 2 / (sqrt3*unitCellsY);
+
+      // lattice vectors
+      var vecA = [a, 0]
+      var vecB = [a/2, ay*sqrt3/2]
+      // unit cell vector
+      var vecIn = [a/2, ay/(2*sqrt3)]
+
+      // Offset the crystal from [0,0] so that circular boundary
+      // conditions will be at the correct distance
+      var startX = a / (2*2);
+      var startY = ay / (2*sqrt3);
+
+      // draw the crystal
+      for(var i = 0; i < unitCellsX; i++){
+        for (var j = 0; j < unitCellsY; j++) {
+          var moX = startX + i * vecA[0] + j*vecB[0];
+          moX -= Math.floor(moX/width) * width;
+          var moY = startY + i * vecA[1] + j*vecB[1];
+          moY -= Math.floor(moY/height) * height;
+          var mo = s.circle(moX + '%', moY + '%', moRadius + '%');
+          mo.attr({
+            fill: 'none',
+            stroke: '#b200ff',
+            strokeWidth: 10
+          })
+          var sX = moX + vecIn[0];
+          sX -= Math.floor(sX/width) * width;
+          var sY = moY + vecIn[1];
+          sY -= Math.floor(sY/height) * height;
+          var sulfur = s.circle(sX + '%', sY + '%', sRadius + '%');
+          sulfur.attr({
+            fill: 'none',
+            stroke: '#f9f909',
+            strokeWidth: 10
+          })
+        }
+      }
+    })();
+
+  </script>
+</body>
+
+</html>
