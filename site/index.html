@@ -7,7 +7,7 @@
 </head>
 
 <body>
-  <svg id="svg" style="position: fixed; top: 0; left:0; width:100%; height:100%;" preserveAspectRatio="xMidYMid meet"></svg>
+  <svg id="svg" preserveAspectRatio="xMidYMid meet"></svg>
 
   <script type="text/javascript">
     var sqrt3 = Math.sqrt(3);
@@ -17,13 +17,16 @@
       var moRadius = 1;
       var sRadius = 1.8;
 
+      var moMass = 42;
+      var sMass = 32; // 2*16
+
       // width and height in percentages
       var width = 100;
       var height = 100;
 
       // number of unit cells in each direction
-      var unitCellsX = 8;
-      var unitCellsY = 6;
+      var unitCellsX = 6;
+      var unitCellsY = 8;
 
       // lattice constants in each direction
       // need different lattice constants because screen width and height will
@@ -32,18 +35,33 @@
       var ay = height * 2 / (sqrt3*unitCellsY);
 
       // lattice vectors
-      var vecA = [a, 0]
-      var vecB = [a/2, ay*sqrt3/2]
+      var vecA = [a, 0];
+      var vecB = [a/2, ay*sqrt3/2];
       // unit cell vector
-      var vecIn = [a/2, ay/(2*sqrt3)]
+      var vecIn = [a/2, ay/(2*sqrt3)];
 
       // Offset the crystal from [0,0] so that circular boundary
       // conditions will be at the correct distance
       var startX = a / (2*2);
       var startY = ay / (2*sqrt3);
 
+      var lattice = [];
+      var moPositions = [];
+      var moVelocities = [];
+      var moForces = [];
+      var sPositions = [];
+      var sVelocities = [];
+      var sForces = [];
+
       // draw the crystal
       for(var i = 0; i < unitCellsX; i++){
+        var row = [];
+        var moPositionRow = [];
+        var moVelocityRow = [];
+        var moForceRow = [];
+        var sPositionRow = [];
+        var sVelocityRow = [];
+        var sForceRow = [];
         for (var j = 0; j < unitCellsY; j++) {
           var moX = startX + i * vecA[0] + j*vecB[0];
           moX -= Math.floor(moX/width) * width;
@@ -54,7 +72,7 @@
             fill: 'none',
             stroke: '#b200ff',
             strokeWidth: 10
-          })
+          });
           var sX = moX + vecIn[0];
           sX -= Math.floor(sX/width) * width;
           var sY = moY + vecIn[1];
@@ -64,9 +82,194 @@
             fill: 'none',
             stroke: '#f9f909',
             strokeWidth: 10
-          })
+          });
+          row.push({
+            molybdenum: mo,
+            sulfur: sulfur
+          });
+          moPositionRow.push([moX, moY]);
+          sPositionRow.push([sX, sY]);
+          moVelocityRow.push([0, 0]);
+          sVelocityRow.push([0, 0]);
+          moForceRow.push([0, 0]);
+          sForceRow.push([0, 0]);
         }
+        lattice.push(row);
+        moPositions.push(moPositionRow);
+        moVelocities.push(moVelocityRow);
+        moForces.push(moForceRow);
+        sPositions.push(sPositionRow);
+        sVelocities.push(sVelocityRow);
+        sForces.push(sForceRow);
       }
+
+      moVelocities[0][0][0] = .5;
+      moVelocities[0][0][1] = .5;
+
+      // do the animation
+      var lastTime = null;
+
+      /**
+      Takes in [x,y], returns [x, y] within the PBC
+      */
+      function putWithinBounds(position){
+        var ret = [position[0], position[1]];
+        if (position[0] > width)
+          ret[0] -= width;
+        if (position[0] < 0)
+          ret[0] += width;
+        if (position[1] > height)
+          ret[1] -= height;
+        if (position[1] < 0)
+          ret[1] += height;
+        return ret;
+      }
+
+      /**
+      Separations x, y, returns [x, y] of shortest path
+      */
+      function shortest(x, y) {
+        var retx = x;
+        var rety = y;
+        if (Math.abs(x) > width / 2){
+          // x - sign(x) * width
+          retx = x - (x?x<0?-1:1:0) * width;
+        }
+        if (Math.abs(y) > height / 2){
+          rety = y - (y?y<0?-1:1:0) * height;
+        }
+        return [retx, rety];
+      }
+
+      function getNearestNeighbors(i, j) {
+        // first do molybdenum
+        var mo = [];
+        // add the i,j sulfur, it's always just the easy one
+        mo.push([i, j]);
+        // add the [i-1,j] sulfur
+        mo.push([i-1, j]);
+        // add the [i, j-1] sulfur
+
+
+
+      }
+
+      var count = 0;
+      function step(timestamp) {
+        // calculate the forces
+        if (!lastTime) {
+          lastTime = timestamp;
+          // skip the first frame
+          window.requestAnimationFrame(step);
+          return;
+        }
+        // calculate the timestep
+        var progress = (timestamp - lastTime) * 1.e-1;
+        // console.log('timestep: ' + (timestamp - lastTime));
+        lastTime = timestamp;
+
+        // update the half velocities and positions
+        for(var i = 0; i < unitCellsX; i++){
+          for(var j = 0; j < unitCellsY; j++){
+            // update the half velocities
+            moVelocities[i][j][0] += 0.5 * (moForces[i][j][0] / moMass) * progress;
+            moVelocities[i][j][1] += 0.5 * (moForces[i][j][1] / moMass) * progress;
+            sVelocities[i][j][0] += 0.5 * (sForces[i][j][0] / moMass) * progress;
+            sVelocities[i][j][1] += 0.5 * (sForces[i][j][1] / moMass) * progress;
+
+            // update the positions according to the velocities
+            moPositions[i][j][0] += moVelocities[i][j][0] * progress;
+            moPositions[i][j][1] += moVelocities[i][j][1] * progress;
+            sPositions[i][j][0] += sVelocities[i][j][0] * progress;
+            sPositions[i][j][1] += sVelocities[i][j][1] * progress;
+
+            moPositions[i][j] = putWithinBounds(moPositions[i][j]);
+            sPositions[i][j] = putWithinBounds(sPositions[i][j]);
+
+            // set the positions
+            lattice[i][j].molybdenum.attr({
+              cx: moPositions[i][j][0] + '%',
+              cy: moPositions[i][j][1] + '%'
+            });
+            lattice[i][j].sulfur.attr({
+              cx: sPositions[i][j][0] + '%',
+              cy: sPositions[i][j][1] + '%'
+            });
+          }
+        }
+
+        // update the forces
+        for(var i = 0; i < unitCellsX; i++){
+          for(var j = 0; j < unitCellsY; j++){
+            // sum the three nearest neighbor forces
+            var d1x = (moPositions[i][j][0] - sPositions[i][j][0]);
+            var d1y = (moPositions[i][j][1] - sPositions[i][j][1]);
+            var d1 = shortest(d1x, d1y);
+
+            var index = (i - 1 < 0) ? i - 1 + unitCellsX : i - 1;
+            var d2x = (moPositions[i][j][0] - sPositions[index][j][0]);
+            var d2y = (moPositions[i][j][1] - sPositions[index][j][1]);
+            var d2 = shortest(d2x, d2y);
+
+            var d3x, d3y;
+            // The index logic is cuz the layers wrap to new rows
+            index = j - 1;
+            if (index < 0) {
+              index = (i + unitCellsY) % unitCellsX;
+              d3x = moPositions[i][j][0] - sPositions[index][unitCellsY-1][0];
+              d3y = moPositions[i][j][1] - sPositions[index][unitCellsY-1][1];
+            } else {
+              d3x = moPositions[i][j][0] - sPositions[i][index][0];
+              d3y = moPositions[i][j][1] - sPositions[i][index][1];
+            }
+            var d3 = shortest(d3x, d3y);
+
+            var springConstant = 2;
+            var dragConstant = 0.5;
+            // calculate the force
+            var fx = -1 * springConstant * (d1[0] + d2[0] + d3[0])/a - dragConstant * moVelocities[i][j][0];
+            var fy = -1 *springConstant * (d1[1] + d2[1] + d3[1])/ay - dragConstant * moVelocities[i][j][1];
+            moForces[i][j][0] = fx;
+            moForces[i][j][1] = fy;
+
+            // do the same for the sulfur
+            d1x = -1*(moPositions[i][j][0] - sPositions[i][j][0]);
+            d1y = -1*(moPositions[i][j][1] - sPositions[i][j][1]);
+            d1 = shortest(d1x, d1y);
+
+            index = (i + 1 >= unitCellsX) ? i + 1 - unitCellsX : i + 1;
+            d2x = sPositions[i][j][0] - moPositions[index][j][0];
+            d2y = sPositions[i][j][1] - moPositions[index][j][1];
+            d2 = shortest(d2x, d2y);
+
+            index = j + 1;
+            if (index >= unitCellsY) {
+              index = (i + Math.floor(unitCellsY/2)) % unitCellsX;
+              d3x = sPositions[i][j][0] - moPositions[index][0][0];
+              d3y = sPositions[i][j][1] - moPositions[index][0][1];
+            } else {
+              d3x = sPositions[i][j][0] - moPositions[i][index][0];
+              d3y = sPositions[i][j][1] - moPositions[i][index][1];
+            }
+            d3 = shortest(d3x, d3y);
+
+            fx = -1 * springConstant * (d1[0] + d2[0] + d3[0])/a - dragConstant * sVelocities[i][j][0];
+            fy = -1 *springConstant * (d1[1] + d2[1] + d3[1])/ay - dragConstant * sVelocities[i][j][1];
+            sForces[i][j][0] = fx;
+            sForces[i][j][1] = fy;
+
+            // update the 2nd half velocities
+            moVelocities[i][j][0] += 0.5 * (moForces[i][j][0] / moMass) * progress;
+            moVelocities[i][j][1] += 0.5 * (moForces[i][j][1] / moMass) * progress;
+            sVelocities[i][j][0] += 0.5 * (sForces[i][j][0] / sMass) * progress;
+            sVelocities[i][j][1] += 0.5 * (sForces[i][j][1] / sMass) * progress;
+          }
+        }
+
+        window.requestAnimationFrame(step);
+      }
+
+      window.requestAnimationFrame(step);
     })();
 
   </script>

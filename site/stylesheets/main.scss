@@ -3,3 +3,11 @@ html, body {
   padding: 0;
   overflow: hidden;
 }
+
+#svg {
+  position: fixed;
+  top: -5%;
+  left: -5%;
+  height: 110%;
+  width: 110%;
+}
