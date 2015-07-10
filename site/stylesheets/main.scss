@@ -1,3 +1,9 @@
+@mixin background-gradient($angle, $color1, $color2){
+  background: -webkit-linear-gradient($angle, $color1, $color2); /* For Safari 5.1 to 6.0 */
+  background: -o-linear-gradient($angle, $color1, $color2); /* For Opera 11.1 to 12.0 */
+  background: -moz-linear-gradient($angle, $color1, $color2); /* For Firefox 3.6 to 15 */
+  background: linear-gradient($angle, $color1, $color2); /* Standard syntax */
+}
 html, body {
   margin: 0;
   padding: 0;
@@ -5,6 +11,7 @@ html, body {
 }
 
 #svg {
+  @include background-gradient(10deg, #393939, lighten(#393939, 20%));
   position: fixed;
   top: -5%;
   left: -5%;

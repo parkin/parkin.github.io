@@ -12,7 +12,10 @@
   <script type="text/javascript">
     var sqrt3 = Math.sqrt(3);
     (function() {
-      var s = Snap("#svg");
+      var paper = Snap("#svg");
+
+      var springConstant = 2;
+      var dragConstant = 0.5;
 
       var moRadius = 1;
       var sRadius = 1.8;
@@ -25,8 +28,8 @@
       var height = 100;
 
       // number of unit cells in each direction
-      var unitCellsX = 6;
-      var unitCellsY = 8;
+      var unitCellsX = 8;
+      var unitCellsY = 4;
 
       // lattice constants in each direction
       // need different lattice constants because screen width and height will
@@ -53,6 +56,15 @@
       var sVelocities = [];
       var sForces = [];
 
+      function getFill(opacity) {
+        if(opacity > 1)
+          opacity = 1;
+        if(opacity < 0.01)
+          opacity = 0;
+        var ret = 'rgba(200, 200, 200, ' + opacity + ')';
+        return ret
+      }
+
       // draw the crystal
       for(var i = 0; i < unitCellsX; i++){
         var row = [];
@@ -67,21 +79,37 @@
           moX -= Math.floor(moX/width) * width;
           var moY = startY + i * vecA[1] + j*vecB[1];
           moY -= Math.floor(moY/height) * height;
-          var mo = s.circle(moX + '%', moY + '%', moRadius + '%');
+          var mo = paper.circle(moX + '%', moY + '%', moRadius + '%');
           mo.attr({
-            fill: 'none',
-            stroke: '#b200ff',
-            strokeWidth: 10
+            fill: getFill(0.1),
+            stroke: 'rgba(178, 0, 225, 0.01)',
+            strokeWidth: 1,
+            latticeA: i,
+            latticeB: j
+          });
+          mo.click(function(e) {
+            var a = this.attr().latticeA;
+            var b = this.attr().latticeB;
+            moVelocities[a][b][0] += Math.random() - 0.5;
+            moVelocities[a][b][1] += Math.random() - 0.5;
           });
           var sX = moX + vecIn[0];
           sX -= Math.floor(sX/width) * width;
           var sY = moY + vecIn[1];
           sY -= Math.floor(sY/height) * height;
-          var sulfur = s.circle(sX + '%', sY + '%', sRadius + '%');
+          var sulfur = paper.circle(sX + '%', sY + '%', sRadius + '%');
           sulfur.attr({
-            fill: 'none',
-            stroke: '#f9f909',
-            strokeWidth: 10
+            fill: getFill(0.1),
+            stroke: 'rgba(249, 249, 9, 0.1)',
+            strokeWidth: 1,
+            latticeA: i,
+            latticeB: j
+          });
+          sulfur.click(function(e) {
+            var a = this.attr().latticeA;
+            var b = this.attr().latticeB;
+            sVelocities[a][b][0] += Math.random() - 0.5;
+            sVelocities[a][b][1] += Math.random() - 0.5;
           });
           row.push({
             molybdenum: mo,
@@ -102,9 +130,6 @@
         sVelocities.push(sVelocityRow);
         sForces.push(sForceRow);
       }
-
-      moVelocities[0][0][0] = .5;
-      moVelocities[0][0][1] = .5;
 
       // do the animation
       var lastTime = null;
@@ -215,7 +240,7 @@
             // The index logic is cuz the layers wrap to new rows
             index = j - 1;
             if (index < 0) {
-              index = (i + unitCellsY) % unitCellsX;
+              index = (i+6) %unitCellsX; // TODO fix for arbitray number of unit cells@
               d3x = moPositions[i][j][0] - sPositions[index][unitCellsY-1][0];
               d3y = moPositions[i][j][1] - sPositions[index][unitCellsY-1][1];
             } else {
@@ -224,11 +249,12 @@
             }
             var d3 = shortest(d3x, d3y);
 
-            var springConstant = 2;
-            var dragConstant = 0.5;
             // calculate the force
             var fx = -1 * springConstant * (d1[0] + d2[0] + d3[0])/a - dragConstant * moVelocities[i][j][0];
             var fy = -1 *springConstant * (d1[1] + d2[1] + d3[1])/ay - dragConstant * moVelocities[i][j][1];
+            if(i === 0 && j === 0) {
+              console.log(d1, d2, d3, fx, index)
+            }
             moForces[i][j][0] = fx;
             moForces[i][j][1] = fy;
 
