@@ -58,6 +58,7 @@ gulp.task('deploy', ['build'], function() {
   var message = timeStamp() + ' :: ' + gitMessage;
   return gulp.src(paths.toDeploy)
     .pipe(ghPages({
-      message: message
+      message: message,
+      branch: "master"
     }))
 });

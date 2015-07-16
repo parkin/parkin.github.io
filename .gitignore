@@ -1,5 +1,6 @@
 # built files
 build
+.publish
 
 # node
 node_modules
